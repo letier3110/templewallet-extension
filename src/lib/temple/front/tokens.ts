@@ -23,6 +23,20 @@ const NETWORK_TOKEN_MAP = new Map([
   [TempleChainId.Delphinet, DELPHINET_TOKENS],
 ]);
 
+// export function useTokensNext(networkRpc?: string) {
+//   const selectedNetwork = useNetwork();
+//   const chainId = useCustomChainId(networkRpc ?? selectedNetwork.rpcBaseURL, true)!;
+
+//   const fetchNetTokens = React.useCallback(() => Repo.accountTokens.where({ chainId }).toArray(), [chainId]);
+
+//   const allTokens = useRetryableSWR(getNetTokensSWRKey(chainId), fetchNetTokens, {
+//     suspense: true,
+//     revalidateOnFocus: false,
+//     revalidateOnReconnect: false,
+//   }).data!;
+
+// }
+
 export function useTokens(networkRpc?: string) {
   const allNetworks = useAllNetworks();
   const selectedNetwork = useNetwork();
@@ -110,6 +124,10 @@ export async function preloadTokens(netId: string, rpcUrl: string) {
   await Promise.all(
     [
       {
+        key: getCustomChainIdSWRKey(rpcUrl),
+        factory: () => loadChainId(rpcUrl),
+      },
+      {
         key: tokensKey,
         factory: () => fetchFromStorage(tokensKey),
       },
@@ -117,14 +135,14 @@ export async function preloadTokens(netId: string, rpcUrl: string) {
         key: hiddenTokensKey,
         factory: () => fetchFromStorage(hiddenTokensKey),
       },
-      {
-        key: getCustomChainIdSWRKey(rpcUrl),
-        factory: () => loadChainId(rpcUrl),
-      },
     ]
       .filter(({ key }) => !cache.has(key))
       .map(({ key, factory }) => mutate(key, factory))
   );
+}
+
+export function getNetTokensSWRKey(chainId: string) {
+  return ["nettokens", chainId];
 }
 
 export function getTokensSWRKey(netId: string) {
